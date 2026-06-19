@@ -14,7 +14,7 @@ run:
 # ce qui sera en production (pas dans l'environnement local)
 test:
 	docker run --rm \
-		-v $(PWD):/app \
+		-v "$(CURDIR):/app" \
 		-w /app \
 		$(IMAGE_NAME):latest \
 		pytest tests/ -v --cov=src --cov-report=term-missing
