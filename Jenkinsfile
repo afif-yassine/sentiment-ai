@@ -65,6 +65,13 @@ pipeline {
                     set -e
                     docker cp test-runner:/tmp/coverage.xml ./coverage.xml 2>/dev/null || true
                     docker rm -f test-runner 2>/dev/null || true
+                    # Normalize coverage source path so SonarQube resolves src/ files
+                    # against the Jenkins workspace. The report is generated inside the
+                    # image (rootdir /app), so its <source> path does not exist in the
+                    # Jenkins workspace and SonarQube would otherwise read coverage as 0%.
+                    if [ -f coverage.xml ]; then
+                        sed -i "s|<source>.*</source>|<source>${WORKSPACE}</source>|g" coverage.xml
+                    fi
                     exit $TEST_EXIT_CODE
                 '''
             }
