@@ -1,4 +1,4 @@
-// Jenkinsfile - Pipeline CI/CD SentimentAI - 8 stages
+// Jenkinsfile - Pipeline CI/CD SentimentAI - 10 stages
 pipeline {
     agent any
 
@@ -33,16 +33,23 @@ pipeline {
             }
         }
 
-        // Stage 3 - Build & Test (avec generation coverage.xml)
+        // Stage 3 - IaC Validate (toutes les branches - Fail Fast)
+        stage('IaC Validate') {
+            steps {
+                dir('infra') {
+                    sh 'terraform init -backend=false -input=false'
+                    sh 'terraform fmt -check'
+                    sh 'terraform validate'
+                }
+            }
+        }
+
+        // Stage 4 - Build & Test
         stage('Build & Test') {
             steps {
                 sh '''
                     docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
-
-                    # Supprimer un eventuel conteneur test-runner residuel
                     docker rm -f test-runner 2>/dev/null || true
-
-                    # Lancer les tests en nommant le conteneur pour copier coverage.xml
                     set +e
                     docker run \
                         -e CI=true \
@@ -55,12 +62,8 @@ pipeline {
                             --cov-fail-under=70
                     TEST_EXIT_CODE=$?
                     set -e
-
-                    # Copier coverage.xml depuis le conteneur vers le workspace
                     docker cp test-runner:/tmp/coverage.xml ./coverage.xml 2>/dev/null || true
                     docker rm -f test-runner 2>/dev/null || true
-
-                    # Retourner le code de sortie des tests
                     exit $TEST_EXIT_CODE
                 '''
             }
@@ -71,7 +74,7 @@ pipeline {
             }
         }
 
-        // Stage 4 - SonarQube Analysis
+        // Stage 5 - SonarQube Analysis
         stage('SonarQube Analysis') {
             environment {
                 SONARQUBE_TOKEN = credentials('sonar-token')
@@ -100,7 +103,7 @@ pipeline {
             }
         }
 
-        // Stage 5 - Quality Gate
+        // Stage 6 - Quality Gate
         stage('Quality Gate') {
             steps {
                 timeout(time: 15, unit: 'MINUTES') {
@@ -109,7 +112,7 @@ pipeline {
             }
         }
 
-        // Stage 6 - Security Scan (Trivy)
+        // Stage 7 - Security Scan (Trivy)
         stage('Security Scan') {
             steps {
                 sh '''
@@ -122,15 +125,9 @@ pipeline {
                             --format table \
                 ''' + "${IMAGE_NAME}:${IMAGE_TAG}"
             }
-            post {
-                failure {
-                    echo 'Vulnerabilites CRITICAL ou HIGH detectees !'
-                    echo 'Corrigez les dependances avant de deployer.'
-                }
-            }
         }
 
-        // Stage 7 - Push (main only)
+        // Stage 8 - Push (main only)
         stage('Push') {
             when { branch 'main' }
             steps {
@@ -151,16 +148,26 @@ pipeline {
             }
         }
 
-        // Stage 8 - Deploy Staging (main only)
+        // Stage 9 - IaC Apply (main only)
+        stage('IaC Apply') {
+            when { branch 'main' }
+            steps {
+                dir('infra') {
+                    sh 'terraform init -input=false'
+                    sh """
+                        terraform apply -auto-approve \
+                            -var='image_tag=${IMAGE_TAG}'
+                    """
+                }
+            }
+        }
+
+        // Stage 10 - Deploy Staging (main only)
         stage('Deploy Staging') {
             when { branch 'main' }
             steps {
-                echo "Deploiement de ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} en staging..."
-                sh '''
-                    docker compose -f docker-compose.yml -p staging down 2>/dev/null || true
-                    docker compose -f docker-compose.yml -p staging up -d
-                    echo "Staging disponible sur http://localhost:8080"
-                '''
+                sh 'curl -f http://localhost:8001/health || exit 1'
+                echo "Staging disponible sur http://localhost:8001"
             }
         }
     }
