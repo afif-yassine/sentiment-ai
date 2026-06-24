@@ -175,10 +175,12 @@ pipeline {
                         docker stop sentiment-staging 2>/dev/null || true
                         docker rm sentiment-staging 2>/dev/null || true
                     '''
-                    sh """
-                        terraform apply -auto-approve \
-                            -var='image_tag=${IMAGE_TAG}'
-                    """
+                    withEnv(['DOCKER_HOST=unix:///var/run/docker.sock']) {
+                        sh """
+                            TF_VAR_image_tag=${IMAGE_TAG} terraform apply -auto-approve \
+                                -var='image_tag=${IMAGE_TAG}'
+                        """
+                    }
                 }
             }
         }

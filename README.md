@@ -1,7 +1,7 @@
 # 🤖 SentimentAI
 
 > REST API for sentiment analysis — DevOps project built with FastAPI, Docker, and Jenkins CI/CD
-
+![alt text](image.png)
 [![Pipeline](https://img.shields.io/badge/CI%2FCD-Jenkins-blue?logo=jenkins)](http://localhost:8080)
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker)](https://github.com/afif-yassine/sentiment-ai/pkgs/container/sentiment-ai)
 [![Python](https://img.shields.io/badge/Python-3.11-yellow?logo=python)](https://www.python.org/)

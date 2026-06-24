@@ -7,9 +7,10 @@ terraform {
   }
 }
 
-# Windows avec Docker Desktop (local) ou Linux socket (Jenkins)
+# Windows avec Docker Desktop (local)
+# Jenkins utilise unix:///var/run/docker.sock (configure via DOCKER_HOST env var)
 provider "docker" {
-  host = "unix:///var/run/docker.sock"
+  host = "npipe:////./pipe/docker_engine"
 }
 
 # Reseau Docker partage Jenkins / SonarQube / SentimentAI
