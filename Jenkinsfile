@@ -165,11 +165,20 @@ pipeline {
                         # Import cicd-network if it exists but not in state
                         NETWORK_ID=$(docker network inspect cicd-network --format "{{.Id}}" 2>/dev/null || true)
                         if [ -n "$NETWORK_ID" ]; then
-                            terraform import docker_network.cicd $NETWORK_ID 2>/dev/null || true
+                            terraform import \
+                                -var="docker_host=unix:///var/run/docker.sock" \
+                                docker_network.cicd $NETWORK_ID 2>/dev/null || true
                         fi
-                        # Remove and recreate staging container via Terraform
+
+                        # Remove prometheus/grafana containers from state — they are
+                        # managed by monitoring/docker-compose.yml, not by Terraform.
+                        terraform state rm docker_container.prometheus 2>/dev/null || true
+                        terraform state rm docker_container.grafana    2>/dev/null || true
+
+                        # Remove staging container so Terraform can recreate it
                         docker stop sentiment-staging 2>/dev/null || true
-                        docker rm sentiment-staging 2>/dev/null || true
+                        docker rm   sentiment-staging 2>/dev/null || true
+                        terraform state rm docker_container.sentiment_staging 2>/dev/null || true
                     '''
                     sh """
                         terraform apply -auto-approve \

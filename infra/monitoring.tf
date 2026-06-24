@@ -1,54 +1,17 @@
+# Prometheus et Grafana sont geres par monitoring/docker-compose.yml (TP5).
+# Ce fichier garde uniquement les references aux images pour que Terraform
+# puisse les pull sans gerer le cycle de vie des conteneurs.
+#
+# Les conteneurs sont lances une seule fois via :
+#   cd monitoring && docker compose up -d
+# et ne sont PAS recreees a chaque pipeline Jenkins.
+
 resource "docker_image" "prometheus" {
   name         = "prom/prometheus:latest"
   keep_locally = true
 }
 
-resource "docker_container" "prometheus" {
-  name    = "prometheus"
-  image   = docker_image.prometheus.image_id
-  restart = "unless-stopped"
-
-  networks_advanced { name = docker_network.cicd.name }
-
-  ports {
-    internal = 9090
-    external = 9090
-  }
-
-  volumes {
-    host_path      = abspath("${path.module}/../monitoring/prometheus.yml")
-    container_path = "/etc/prometheus/prometheus.yml"
-    read_only      = true
-  }
-
-  volumes {
-    host_path      = abspath("${path.module}/../monitoring/alerts.yml")
-    container_path = "/etc/prometheus/alerts.yml"
-    read_only      = true
-  }
-
-  command = [
-    "--config.file=/etc/prometheus/prometheus.yml",
-    "--storage.tsdb.retention.time=15d"
-  ]
-}
-
 resource "docker_image" "grafana" {
   name         = "grafana/grafana:latest"
   keep_locally = true
-}
-
-resource "docker_container" "grafana" {
-  name    = "grafana"
-  image   = docker_image.grafana.image_id
-  restart = "unless-stopped"
-
-  networks_advanced { name = docker_network.cicd.name }
-
-  ports {
-    internal = 3000
-    external = 3000
-  }
-
-  env = ["GF_SECURITY_ADMIN_PASSWORD=admin"]
 }
