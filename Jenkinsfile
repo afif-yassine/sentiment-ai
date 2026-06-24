@@ -167,16 +167,15 @@ pipeline {
                         if [ -n "$NETWORK_ID" ]; then
                             terraform import docker_network.cicd $NETWORK_ID 2>/dev/null || true
                         fi
-                        # Import sentiment-staging container if exists
+                        # Remove and recreate staging container via Terraform
                         docker stop sentiment-staging 2>/dev/null || true
                         docker rm sentiment-staging 2>/dev/null || true
                     '''
-                    withEnv(['DOCKER_HOST=unix:///var/run/docker.sock']) {
-                        sh """
-                            TF_VAR_image_tag=${IMAGE_TAG} terraform apply -auto-approve \
-                                -var='image_tag=${IMAGE_TAG}'
-                        """
-                    }
+                    sh """
+                        terraform apply -auto-approve \
+                            -var='image_tag=${IMAGE_TAG}' \
+                            -var='docker_host=unix:///var/run/docker.sock'
+                    """
                 }
             }
         }

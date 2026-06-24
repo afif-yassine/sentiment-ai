@@ -7,10 +7,12 @@ terraform {
   }
 }
 
-# Windows avec Docker Desktop (local)
-# Jenkins utilise unix:///var/run/docker.sock (configure via DOCKER_HOST env var)
+# Le provider lit DOCKER_HOST depuis l'environnement.
+# - En local Windows  : npipe:////./pipe/docker_engine
+# - Dans Jenkins (Linux) : unix:///var/run/docker.sock
+# Laisser host vide force le provider a lire DOCKER_HOST automatiquement.
 provider "docker" {
-  host = "npipe:////./pipe/docker_engine"
+  host = var.docker_host
 }
 
 # Reseau Docker partage Jenkins / SonarQube / SentimentAI

@@ -1,3 +1,9 @@
+variable "docker_host" {
+  description = "Docker daemon socket (Unix socket in Jenkins, named pipe on Windows)"
+  type        = string
+  default     = "unix:///var/run/docker.sock"
+}
+
 variable "image_tag" {
   description = "Tag de l'image Docker a deployer"
   type        = string
