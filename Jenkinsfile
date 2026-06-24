@@ -49,30 +49,19 @@ pipeline {
             steps {
                 sh '''
                     docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
-                    docker rm -f test-runner 2>/dev/null || true
-                    set +e
-                    docker run \
+
+                    # Run tests inside the Jenkins workspace so coverage paths are
+                    # native workspace paths — no post-processing needed for SonarQube.
+                    docker run --rm \
+                        --volumes-from jenkins \
+                        -w "$WORKSPACE" \
                         -e CI=true \
-                        -m 512m \
-                        --name test-runner \
                         ${IMAGE_NAME}:${IMAGE_TAG} \
                         pytest tests/ -v \
                             --cov=src \
-                            --cov-report=xml:/tmp/coverage.xml \
+                            --cov-report=xml:coverage.xml \
                             --cov-report=term-missing \
                             --cov-fail-under=70
-                    TEST_EXIT_CODE=$?
-                    set -e
-                    docker cp test-runner:/tmp/coverage.xml ./coverage.xml 2>/dev/null || true
-                    docker rm -f test-runner 2>/dev/null || true
-                    # Normalize coverage source path so SonarQube resolves src/ files
-                    # against the Jenkins workspace. The report is generated inside the
-                    # image (rootdir /app), so its <source> path does not exist in the
-                    # Jenkins workspace and SonarQube would otherwise read coverage as 0%.
-                    if [ -f coverage.xml ]; then
-                        sed -i "s|<source>.*</source>|<source>${WORKSPACE}</source>|g" coverage.xml
-                    fi
-                    exit $TEST_EXIT_CODE
                 '''
             }
             post {
