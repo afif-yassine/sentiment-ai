@@ -130,7 +130,12 @@ pipeline {
 
         // Stage 8 - Push (main only)
         stage('Push') {
-            when { branch 'main' }
+            when {
+                anyOf {
+                    branch 'main'
+                    expression { env.BRANCH_NAME == null }
+                }
+            }
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'github-token',
@@ -151,7 +156,12 @@ pipeline {
 
         // Stage 9 - IaC Apply (main only)
         stage('IaC Apply') {
-            when { branch 'main' }
+            when {
+                anyOf {
+                    branch 'main'
+                    expression { env.BRANCH_NAME == null }
+                }
+            }
             steps {
                 dir('infra') {
                     sh 'terraform init -input=false'
@@ -165,7 +175,12 @@ pipeline {
 
         // Stage 10 - Deploy Staging (main only)
         stage('Deploy Staging') {
-            when { branch 'main' }
+            when {
+                anyOf {
+                    branch 'main'
+                    expression { env.BRANCH_NAME == null }
+                }
+            }
             steps {
                 sh 'curl -f http://localhost:8001/health || exit 1'
                 echo "Staging disponible sur http://localhost:8001"
