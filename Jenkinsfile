@@ -53,6 +53,7 @@ pipeline {
                     set +e
                     docker run \
                         -e CI=true \
+                        -m 512m \
                         --name test-runner \
                         ${IMAGE_NAME}:${IMAGE_TAG} \
                         pytest tests/ -v \
