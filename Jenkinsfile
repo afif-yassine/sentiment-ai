@@ -192,7 +192,11 @@ pipeline {
                 }
             }
             steps {
-                sh 'curl -f http://localhost:8001/health || exit 1'
+                sh '''
+                    # Wait for container to be ready
+                    sleep 5
+                    docker exec sentiment-staging curl -f http://localhost:8000/health || exit 1
+                '''
                 echo "Staging disponible sur http://localhost:8001"
             }
         }
